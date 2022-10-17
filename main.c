@@ -25,29 +25,37 @@ int ninguemGanhou(char matriz[3][3], char simbolo);
 void exibirTabuleiro(char matriz[3][3]);
 void jogadorVsJogador();
 void jogadorVsComputador();
+void abrirJogo(char nomeDoArquivo[20]);
+void salvarJogo(Jogo jogo);
+void jogadaDaMaquina(char matriz[3][3]);
 
 int main(){
     char nomeDoArquivo[20];
-    int opcao = menuPrincipal();
-    switch (opcao){
-        case 0:
-            printf("Obrigada por participar do nosso jogo!");
-            return 0;
-            break;
-        case 1:
-            novoJogo();
-            break;
-        case 2:
-            printf("Qual o nome do arquivo do jogo que você deseja jogar?");
-            scanf("%s", &nomeDoArquivo);
-            abrirJogo(nomeDoArquivo);
-            break;
-        case 3:
-            abrirJogo("jogoAtual.txt");
-            break;
-        default:
-            break;
-    }
+    int opcao;
+    do{
+        opcao = menuPrincipal();
+        switch (opcao){
+            case 0:
+                printf("Obrigada por participar do nosso jogo!");
+                return 0;
+                break;
+            case 1:
+                novoJogo();
+                break;
+            case 2:
+                printf("Qual o nome do arquivo do jogo que você deseja jogar?");
+                scanf("%s", nomeDoArquivo);
+                abrirJogo(nomeDoArquivo);
+                break;
+            case 3:
+                abrirJogo("ContinuaUltJogo.txt");
+                break;
+            case 4: 
+
+            default:
+                break;
+        }
+    }while(opcao != 0);
     return 0;
 }
 
@@ -101,6 +109,7 @@ void novoJogo(){
         jogo.nomeUm[strlen(jogo.nomeUm)-1] = '\0';
         printf("Digite o nome do jogador 2: ");
         fgets(jogo.nomeDois, 30, stdin);
+        jogo.nomeDois[strlen(jogo.nomeDois)-1] = '\0';
         inicializaMatriz(jogo.tabuleiro);
         jogadorVsJogador(jogo);
     }
@@ -159,27 +168,51 @@ void exibirTabuleiro(char matriz[3][3]){
     printf(" %c | %c | %c \n", matriz[2][0], matriz[2][1], matriz[2][2]);
 }
 
-void jogada(char nome[], Jogo *jogo, char simbolo){
-    char comando[7], nomeDoArqDoUsuario;
-    int jogada, linhaJogada, colunaJogada;
-    //do{
+// vai retonar 1 se é para voltar para o menu principal
+int jogada(char nome[], Jogo *jogo, char simbolo){
+    char comando[30];
+    int linhaJogada, colunaJogada;
     printf("%s, digite o comando:", nome);
-    scanf("%s", comando);
-    //} while(jogo->tabuleiro[linhaJogada][colunaJogada] != ' ');
-    if (strcmp(comando, "marcar") == 0){
-        scanf("%d", &jogada);
-        linhaJogada = (jogada / 10) - 1;
-        colunaJogada = (jogada % 10) - 1;
-        jogo->tabuleiro[linhaJogada][colunaJogada] = simbolo;
+    fgets(comando, 30, stdin);
+    comando[strlen(comando)-1] = '\0';
+    char marcar[] = {"marcar"};
+    char* ponteiro = strstr(comando, marcar);
+    if (ponteiro != NULL){
+        int naoMarcou = 1;
+        do{
+            // 49 = 48 + 1
+            // 48 - é onde começa os números na tabela ASC
+            // 1  - porque o índice começa em 0(Zero).
+            linhaJogada = (int) comando[7] - 49;
+            colunaJogada = (int) comando[8] - 49;
+            if(jogo->tabuleiro[linhaJogada][colunaJogada] != ' '){
+                printf("Comando inválido %s, digite o comando novamente:", nome);          
+                fgets(comando, 30, stdin);
+                comando[strlen(comando)-1] = '\0';
+            } else {
+                jogo->tabuleiro[linhaJogada][colunaJogada] = simbolo;
+                naoMarcou = 0;
+            }
+        } while(naoMarcou == 1);
     }else if(strcmp(comando, "voltar") == 0){
-        strcpy(jogo->nomeDoArquivo, "jogoAtual.txt");
+        printf("1=%d", jogo->numJogadores);
+        strcpy(jogo->nomeDoArquivo, "ContinuaUltJogo.txt");
+        printf("2=%d", jogo->numJogadores);
         salvarJogo(*jogo);
+        // tem que voltar para o menu nesse ponto, e não continuar o jogo como está no momento
+        // DICA: return 1;
+        return 1;
     }else if(strcmp(comando, "salvar") == 0){
+        printf("Digite o nome do jogo: ");
         scanf("%s", jogo->nomeDoArquivo);
         salvarJogo(*jogo); 
-    }else {
-        printf("Comando inválido");
+        // tem que voltar para o menu nesse ponto, e não continuar o jogo como está no momento
+        // DICA: return 1; 
+        return 1;
+    }else{
+        printf("\nComando inválido!!!\n\n");
     }
+    return 0;
 }
 
 //Limpa o buffer do teclado
@@ -191,17 +224,23 @@ void flush_in(){
 void jogadorVsJogador(Jogo jogo){
     int rodada = 0;
     char simboloDaVez;
+    int voltarParaOMenu = 0;
     do{
         rodada++;
         jogo.ultimoJogador = rodada % 2 + 1;
         system("clear");
         exibirTabuleiro(jogo.tabuleiro);
-        if (rodada % 2 == 0){
-            simboloDaVez = 'X';
-            jogada(jogo.nomeUm, &jogo, simboloDaVez);
+        if (jogo.ultimoJogador == 2){
+            simboloDaVez = 'X';    
+            voltarParaOMenu = jogada(jogo.nomeUm, &jogo, simboloDaVez);
+            jogo.ultimoJogador = 1;
         }else{
-            simboloDaVez = 'Y';
-            jogada(jogo.nomeDois, &jogo, simboloDaVez);
+            simboloDaVez = 'O';
+            voltarParaOMenu = jogada(jogo.nomeDois, &jogo, simboloDaVez);
+            jogo.ultimoJogador = 2;
+        }
+        if(voltarParaOMenu == 1){
+            return;
         }
     }while(ninguemGanhou(jogo.tabuleiro, simboloDaVez) && rodada < 9);
     exibirTabuleiro(jogo.tabuleiro);
@@ -217,9 +256,11 @@ void jogadorVsJogador(Jogo jogo){
     exibirOpcoes();
 }
 
+// fazer a mesma coisa que foi feita pro jogadorVsJogador                                                                                                                                                   
 void jogadorVsComputador(Jogo jogo){
     int rodada = 0;
     char simboloDaVez;
+    int voltarParaOMenu = 0;
     do{
         rodada++;
         jogo.ultimoJogador = rodada % 2 + 1;
@@ -227,10 +268,15 @@ void jogadorVsComputador(Jogo jogo){
         exibirTabuleiro(jogo.tabuleiro);
         if (rodada % 2 != 0){
             simboloDaVez = 'X';
+            voltarParaOMenu = jogada(jogo.nomeUm, &jogo, simboloDaVez);
             jogada(jogo.nomeUm, &jogo, simboloDaVez);
         }else{
             simboloDaVez = 'O';
+            voltarParaOMenu = jogada(jogo.nomeDois, &jogo, simboloDaVez);
             jogadaDaMaquina(jogo.tabuleiro);
+        }
+        if(voltarParaOMenu == 1){
+            return;
         }
     }while(ninguemGanhou(jogo.tabuleiro, simboloDaVez) && rodada < 9);
     system("clear");
@@ -258,7 +304,6 @@ void sorteioDaJogadaDaMaquina(char matriz[3][3]){
 }
 
 void jogadaDaMaquina(char matriz[3][3]){
-    int i,j;
     if (matriz[0][0] == matriz [1][1] && matriz[0][0] == 'X' && matriz[2][2] == ' '){
         matriz[2][2] = 'O';
         return;
@@ -337,7 +382,6 @@ void abrirJogo(char nomeDoArquivo[20]){
     for (int i = 0; i < 3; i++){
         fscanf(file, " %c  %c  %c ", &jogo.tabuleiro[i][0], &jogo.tabuleiro[i][1], &jogo.tabuleiro[i][2]);
     }
-    printf("\nNum de jogadores: %d\n Nome do 1: %s \n Nome do 2:%s\n", jogo.numJogadores, jogo.nomeUm, jogo.nomeDois);
     for (int i = 0; i < 3; i++){
         for (int j = 0; j < 3; j++){
             if (jogo.tabuleiro[i][j] == '-'){
