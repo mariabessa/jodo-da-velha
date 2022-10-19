@@ -19,15 +19,20 @@ typedef struct{
 int menuPrincipal();
 void exibirOpcoes();
 void novoJogo();
-Jogador inicializaJogador(char nome[30], char simbolo);
+void inicializaJogador(Jogador *jogador);
 void inicializaMatriz(char matriz[3][3]);
 int ninguemGanhou(char matriz[3][3], char simbolo);
 void exibirTabuleiro(char matriz[3][3]);
-void jogadorVsJogador();
+void jogadorVsJogador(Jogo jogo);
 void jogadorVsComputador();
 void abrirJogo(char nomeDoArquivo[20]);
 void salvarJogo(Jogo jogo);
-void jogadaDaMaquina(char matriz[3][3]);
+void sorteioDaJogadaDaMaquina(char matriz[3][3]);
+int jogadaDaMaquina(char matriz[3][3], char simb);
+void atualizarRanking(Jogador jogadorUm, Jogador jogadorDois);
+Jogador lerJogadorNoArquivo(FILE *file);
+void adicionarJogador(int i,Jogador todosJogadores[10], Jogador jogadorDaVez);
+void criarArquivoRanking(Jogador jogadorUm, Jogador jogadorDois);
 
 int main(){
     char nomeDoArquivo[20];
@@ -45,13 +50,13 @@ int main(){
             case 2:
                 printf("Qual o nome do arquivo do jogo que você deseja jogar?");
                 scanf("%s", nomeDoArquivo);
+                getchar();
                 abrirJogo(nomeDoArquivo);
                 break;
             case 3:
                 abrirJogo("ContinuaUltJogo.txt");
                 break;
             case 4: 
-
             default:
                 break;
         }
@@ -115,16 +120,78 @@ void novoJogo(){
     }
 }
 
-Jogador inicializaJogador(char nome[30], char simbolo){
-    Jogador jogador;
+void atualizarRanking(Jogador jogadorUm, Jogador jogadorDois){
+    int attJogUm = 0, attJogDois = 0, i, numeroDeJogadores;
+    Jogador todosJogadores[10];
+    FILE *file = fopen("statusDosJogadores.txt", "r");
+    if (file == NULL){
+            criarArquivoRanking(jogadorUm, jogadorDois);
+            return;
+    }
 
-    jogador.simbolo = simbolo;
-    strcpy(jogador.nome, nome);
-    // verificar quantas derrotas e empates e vitórias tem o jogador
-    jogador.derrotas = 0;
-    jogador.empates = 0;
-    jogador.vitorias = 0;    
+    fscanf(file, "%d", &numeroDeJogadores);
+    for (i = 0; i < numeroDeJogadores; i++){
+        todosJogadores[i] = lerJogadorNoArquivo(file);
+        if (strcmp(todosJogadores[i].nome, jogadorUm.nome) == 0){
+            todosJogadores[i].vitorias += jogadorUm.vitorias;
+            todosJogadores[i].derrotas += jogadorUm.derrotas;
+            todosJogadores[i].empates += jogadorUm.empates;
+            attJogUm = 1;
+        }else if (strcmp(todosJogadores[i].nome, jogadorDois.nome) == 0){
+            todosJogadores[i].vitorias += jogadorDois.vitorias;
+            todosJogadores[i].derrotas += jogadorDois.derrotas;
+            todosJogadores[i].empates += jogadorDois.empates;
+            attJogDois = 1;
+        }
+    }
+    // Se não estiver na lista
+    if (attJogUm == 0){
+        adicionarJogador(i, todosJogadores, jogadorUm);
+        i++;
+        numeroDeJogadores++;
+    }
+    if (attJogDois == 0){
+        adicionarJogador(i, todosJogadores, jogadorDois);
+        i++;
+        numeroDeJogadores++;
+    }
+    for (int j = 0; j < numeroDeJogadores; j++){
+        printf("%d %s\n", j, todosJogadores[j].nome);
+    }
+    fclose(file);
+}
+
+void adicionarJogador(int i, Jogador todosJogadores[10], Jogador jogadorDaVez){
+    strcpy(todosJogadores[i].nome, jogadorDaVez.nome);
+    todosJogadores[i].vitorias = jogadorDaVez.vitorias;
+    todosJogadores[i].derrotas = jogadorDaVez.derrotas;
+    todosJogadores[i].empates = jogadorDaVez.empates;
+}
+
+void inserirJogadorNoArquivo(FILE *file, Jogador jogador){
+    fprintf(file, "%s\n", jogador.nome);
+    fprintf(file, "%d %d %d\n", jogador.vitorias, jogador.derrotas, jogador.empates);
+}
+
+Jogador lerJogadorNoArquivo(FILE *file){
+    Jogador jogador;
+    fscanf(file, "%s", jogador.nome);
+    fscanf(file, "%d %d %d", &jogador.vitorias, &jogador.derrotas, &jogador.empates);
+    printf("lerjog: %s\n", jogador.nome);
     return jogador;
+}
+
+void criarArquivoRanking(Jogador jogadorUm, Jogador jogadorDois){
+    FILE *file = fopen("statusDosJogadores.txt", "w");
+    fprintf(file, "2\n");
+    if (jogadorUm.vitorias > jogadorDois.vitorias){
+        inserirJogadorNoArquivo(file, jogadorUm);
+        inserirJogadorNoArquivo(file, jogadorDois);
+    }else{
+        inserirJogadorNoArquivo(file, jogadorDois);
+        inserirJogadorNoArquivo(file, jogadorUm);
+    }
+    fclose(file);
 }
 
 void inicializaMatriz(char matriz[3][3]){
@@ -171,13 +238,15 @@ void exibirTabuleiro(char matriz[3][3]){
 // vai retonar 1 se é para voltar para o menu principal
 int jogada(char nome[], Jogo *jogo, char simbolo){
     char comando[30];
-    int linhaJogada, colunaJogada;
+    int linhaJogada, colunaJogada, comandoValido;
+    do{
     printf("%s, digite o comando:", nome);
     fgets(comando, 30, stdin);
     comando[strlen(comando)-1] = '\0';
     char marcar[] = {"marcar"};
     char* ponteiro = strstr(comando, marcar);
     if (ponteiro != NULL){
+        comandoValido = 1;
         int naoMarcou = 1;
         do{
             // 49 = 48 + 1
@@ -195,6 +264,7 @@ int jogada(char nome[], Jogo *jogo, char simbolo){
             }
         } while(naoMarcou == 1);
     }else if(strcmp(comando, "voltar") == 0){
+        comandoValido = 1;
         printf("1=%d", jogo->numJogadores);
         strcpy(jogo->nomeDoArquivo, "ContinuaUltJogo.txt");
         printf("2=%d", jogo->numJogadores);
@@ -203,6 +273,7 @@ int jogada(char nome[], Jogo *jogo, char simbolo){
         // DICA: return 1;
         return 1;
     }else if(strcmp(comando, "salvar") == 0){
+        comandoValido = 1;
         printf("Digite o nome do jogo: ");
         scanf("%s", jogo->nomeDoArquivo);
         salvarJogo(*jogo); 
@@ -211,7 +282,9 @@ int jogada(char nome[], Jogo *jogo, char simbolo){
         return 1;
     }else{
         printf("\nComando inválido!!!\n\n");
+        comandoValido = 0;
     }
+    }while(comandoValido == 0);
     return 0;
 }
 
@@ -221,22 +294,24 @@ void flush_in(){
     while( (ch = fgetc(stdin)) != EOF && ch != '\n' ){} 
 }
 
-void jogadorVsJogador(Jogo jogo){
+void jogadorVsJogador(Jogo jogo){ 
     int rodada = 0;
     char simboloDaVez;
     int voltarParaOMenu = 0;
+    Jogador jogadorUm, jogadorDois;
     do{
         rodada++;
-        jogo.ultimoJogador = rodada % 2 + 1;
         system("clear");
         exibirTabuleiro(jogo.tabuleiro);
         if (jogo.ultimoJogador == 2){
             simboloDaVez = 'X';    
             voltarParaOMenu = jogada(jogo.nomeUm, &jogo, simboloDaVez);
+            strcpy(jogadorUm.nome, jogo.nomeUm);
             jogo.ultimoJogador = 1;
         }else{
             simboloDaVez = 'O';
             voltarParaOMenu = jogada(jogo.nomeDois, &jogo, simboloDaVez);
+            strcpy(jogadorDois.nome, jogo.nomeDois);
             jogo.ultimoJogador = 2;
         }
         if(voltarParaOMenu == 1){
@@ -244,16 +319,31 @@ void jogadorVsJogador(Jogo jogo){
         }
     }while(ninguemGanhou(jogo.tabuleiro, simboloDaVez) && rodada < 9);
     exibirTabuleiro(jogo.tabuleiro);
+    inicializaJogador(&jogadorUm);
+    inicializaJogador(&jogadorDois);
     // se o jogo acabou na ultima rodada e ninguem ganhou então deu velha
     if(rodada == 9 && ninguemGanhou(jogo.tabuleiro, simboloDaVez)){
         printf("Deu velha!\n");
-    } else if (rodada % 2 != 0){
+        jogadorUm.empates = 1;
+        jogadorDois.empates = 1;
+    }else if (rodada % 2 != 0){
         printf("Parabéns %s, você ganhou!\n Digite qualquer tecla para continuar!\n", jogo.nomeUm);
+        jogadorUm.vitorias = 1;
+        jogadorDois.derrotas = 1;
     }else{
         printf("Parabéns %s, você ganhou!\n Digite qualquer tecla para continuar!\n", jogo.nomeDois);
+        jogadorDois.vitorias = 1;
+        jogadorUm.derrotas = 1;
     }
+    atualizarRanking(jogadorUm, jogadorDois);
     getchar();
     exibirOpcoes();
+}
+
+void inicializaJogador(Jogador *jogador){
+    jogador->derrotas = 0;
+    jogador->empates = 0;
+    jogador->vitorias = 0;
 }
 
 // fazer a mesma coisa que foi feita pro jogadorVsJogador                                                                                                                                                   
@@ -263,17 +353,20 @@ void jogadorVsComputador(Jogo jogo){
     int voltarParaOMenu = 0;
     do{
         rodada++;
-        jogo.ultimoJogador = rodada % 2 + 1;
         system("clear");
         exibirTabuleiro(jogo.tabuleiro);
-        if (rodada % 2 != 0){
+        if (jogo.ultimoJogador == 2){
             simboloDaVez = 'X';
             voltarParaOMenu = jogada(jogo.nomeUm, &jogo, simboloDaVez);
-            jogada(jogo.nomeUm, &jogo, simboloDaVez);
+            jogo.ultimoJogador = 1;
         }else{
             simboloDaVez = 'O';
-            voltarParaOMenu = jogada(jogo.nomeDois, &jogo, simboloDaVez);
-            jogadaDaMaquina(jogo.tabuleiro);
+            if (jogadaDaMaquina(jogo.tabuleiro, 'O') == 0){
+                if (jogadaDaMaquina(jogo.tabuleiro, 'X') == 0){
+                    sorteioDaJogadaDaMaquina(jogo.tabuleiro);
+                }
+            }
+            jogo.ultimoJogador = 2;
         }
         if(voltarParaOMenu == 1){
             return;
@@ -303,48 +396,48 @@ void sorteioDaJogadaDaMaquina(char matriz[3][3]){
     matriz[sorteioUm][sorteioDois] = 'O';
 }
 
-void jogadaDaMaquina(char matriz[3][3]){
-    if (matriz[0][0] == matriz [1][1] && matriz[0][0] == 'X' && matriz[2][2] == ' '){
+int jogadaDaMaquina(char matriz[3][3], char simb){
+    if (matriz[0][0] == matriz [1][1] && matriz[0][0] == simb && matriz[2][2] == ' '){
         matriz[2][2] = 'O';
-        return;
-    }else if (matriz[0][0] == matriz [2][2] && matriz[0][0] == 'X' && matriz[1][1] == ' '){
+        return 1;
+    }else if (matriz[0][0] == matriz [2][2] && matriz[0][0] == simb && matriz[1][1] == ' '){
         matriz[1][1] = 'O';
-        return;
-    }else if (matriz[1][1] == matriz [2][2] && matriz[1][1] == 'X' && matriz[0][0] == ' '){
+        return 1;
+    }else if (matriz[1][1] == matriz [2][2] && matriz[1][1] == simb && matriz[0][0] == ' '){
         matriz[0][0] = 'O';
-        return;
-    }else if (matriz[0][2] == matriz [1][1] && matriz[1][1] == 'X' && matriz[2][0] == ' '){
+        return 1;
+    }else if (matriz[0][2] == matriz [1][1] && matriz[1][1] == simb && matriz[2][0] == ' '){
         matriz[2][0] = 'O';
-        return;
-    }else if (matriz[0][2] == matriz [2][0] && matriz[0][2] == 'X' && matriz[1][1] == ' '){
+        return 1;
+    }else if (matriz[0][2] == matriz [2][0] && matriz[0][2] == simb && matriz[1][1] == ' '){
         matriz[1][1] = 'O';
-        return;
-    }else if (matriz[1][1] == matriz [2][0] && matriz[1][1] == 'X' && matriz[0][2] == ' '){
+        return 1;
+    }else if (matriz[1][1] == matriz [2][0] && matriz[1][1] == simb && matriz[0][2] == ' '){
         matriz[0][2] = 'O';
-        return;
+        return 1;
     }
     for(int i = 0; i < 3; i++){
-        if (matriz[i][0] == matriz[i][1] && matriz[i][0] == 'X' && matriz[i][2] == ' '){
+        if (matriz[i][0] == matriz[i][1] && matriz[i][0] == simb && matriz[i][2] == ' '){
             matriz[i][2] = 'O';
-            return;
-        }else if (matriz[i][1] == matriz[i][2] && matriz[i][1] == 'X' && matriz[i][0] == ' '){
+            return 1;
+        }else if (matriz[i][1] == matriz[i][2] && matriz[i][1] == simb && matriz[i][0] == ' '){
             matriz[i][0] = 'O';
-            return;
-        }else if (matriz[i][0] == matriz[i][2] && matriz[i][0] == 'X' && matriz[i][1] == ' '){
+            return 1;
+        }else if (matriz[i][0] == matriz[i][2] && matriz[i][0] == simb && matriz[i][1] == ' '){
             matriz[i][1] = 'O';
-            return;
-        }else if (matriz[0][i] == matriz [1][i] && matriz[0][i] == 'X' && matriz[2][i] == ' '){
+            return 1;
+        }else if (matriz[0][i] == matriz [1][i] && matriz[0][i] == simb && matriz[2][i] == ' '){
             matriz[2][i] = 'O';
-            return;
-        }else if (matriz[1][i] == matriz [2][i] && matriz[1][i] == 'X' && matriz[0][i] == ' '){
+            return 1;
+        }else if (matriz[1][i] == matriz [2][i] && matriz[1][i] == simb && matriz[0][i] == ' '){
             matriz[0][i] = 'O';
-            return;
-        }else if (matriz[0][i] == matriz [2][i] && matriz[0][i] == 'X' && matriz[1][i] == ' '){
+            return 1;
+        }else if (matriz[0][i] == matriz [2][i] && matriz[0][i] == simb && matriz[1][i] == ' '){
             matriz[1][i] = 'O';
-            return;
+            return 1;
         }
     }
-    sorteioDaJogadaDaMaquina(matriz);
+    return 0;
 }
 
 void salvarJogo(Jogo jogo){
@@ -396,3 +489,4 @@ void abrirJogo(char nomeDoArquivo[20]){
         jogadorVsComputador(jogo);
     }
 }
+
