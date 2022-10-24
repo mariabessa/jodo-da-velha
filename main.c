@@ -70,7 +70,7 @@ int main(){
                 novoJogo();
                 break;
             case '2':
-                printf("Qual o nome do arquivo do jogo que você deseja jogar?");
+                printf("Qual o nome do arquivo do jogo que você deseja jogar: ");
                 scanf("%s", nomeDoArquivo);
                 getchar();
                 abrirJogo(nomeDoArquivo);
@@ -342,6 +342,7 @@ void salvarJogo(Jogo jogo){
 void abrirJogo(char nomeDoArquivo[20]){ 
     FILE *file = fopen(nomeDoArquivo, "r");
     Jogo jogo;
+    jogo.tabuleiro = inicializaMatriz();
     fscanf(file, "%d", &jogo.numJogadores); 
     fgets(jogo.nomeUm, 30, file);
     jogo.nomeUm[strlen(jogo.nomeUm)-1] = '\0';
