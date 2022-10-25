@@ -1,7 +1,0 @@
-0
-m
-Computador
- X  -  O 
- O  -  - 
- -  -  - 
-2

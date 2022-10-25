@@ -34,7 +34,7 @@ typedef struct{
     int ultimoJogador;
 }Jogo;
 
-int menuPrincipal();
+char menuPrincipal();
 char ** inicializaMatriz();
 void novoJogo();
 void adicionarJogador(int i,Jogador todosJogadores[10], Jogador jogadorDaVez);
@@ -79,7 +79,7 @@ int main(){
                 abrirJogo("ContinuaUltJogo.txt");
                 break;
             case '4': 
-                exibirRanking("ranking.txt");
+                exibirRanking("velha.ini");
                 break;
             default:
                 printf("Opção inválida! Digite um valor válido: ");
@@ -103,7 +103,7 @@ char ** inicializaMatriz(){
 }
 
 //função que imprime o menu principal e retorna a opcão selecionada
-int menuPrincipal(){ 
+char menuPrincipal(){ 
     char opcao;
     printf("\n \n0. Sair do Jogo\n");
     printf("1. Começar um novo jogo\n");
@@ -343,7 +343,7 @@ void abrirJogo(char nomeDoArquivo[20]){
     FILE *file = fopen(nomeDoArquivo, "r");
     Jogo jogo;
     jogo.tabuleiro = inicializaMatriz();
-    fscanf(file, "%d", &jogo.numJogadores); 
+    fscanf(file, "%d\n", &jogo.numJogadores);
     fgets(jogo.nomeUm, 30, file);
     jogo.nomeUm[strlen(jogo.nomeUm)-1] = '\0';
     fgets(jogo.nomeDois, 30, file);
