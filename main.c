@@ -52,7 +52,7 @@ void criarArquivoRanking(Jogador jogadorUm, Jogador jogadorDois);
 void inserirJogadorNoArquivo(FILE *file, Jogador jogador);
 void inicializaJogador(Jogador *jogador);
 void ordenarTodosJogadores(Jogador todosJogadores[10], int numeroDeJogadores);
-void exibirRanking(char arquivo[12]);
+void exibirRanking(char arquivo[10]);
 void exibirTabuleiro(char **matriz);
 
 int main(){
@@ -72,7 +72,6 @@ int main(){
             case '2':
                 printf("Qual o nome do arquivo do jogo que você deseja jogar: ");
                 scanf("%s", nomeDoArquivo);
-                getchar();
                 abrirJogo(nomeDoArquivo);
                 break;
             case '3':
@@ -276,7 +275,7 @@ int jogada(char nome[], Jogo *jogo, char simbolo){
     int linhaJogada, colunaJogada, comandoValido;
     do{
         comandoValido = 1;
-        printf("%s, digite o comando:", nome);
+        printf("%s, digite o comando: ", nome);
         fgets(comando, 30, stdin);
         comando[strlen(comando)-1] = '\0';
         char marcar[] = {"marcar"};
@@ -351,6 +350,7 @@ void abrirJogo(char nomeDoArquivo[20]){
     for (int i = 0; i < 3; i++){
         fscanf(file, " %c  %c  %c ", &jogo.tabuleiro[i][0], &jogo.tabuleiro[i][1], &jogo.tabuleiro[i][2]);
     }
+
     for (int i = 0; i < 3; i++){
         for (int j = 0; j < 3; j++){
             if (jogo.tabuleiro[i][j] == '-'){
@@ -359,6 +359,7 @@ void abrirJogo(char nomeDoArquivo[20]){
         }
     }
     fscanf(file, "%d", &jogo.ultimoJogador);
+    getchar();
     if (jogo.numJogadores == 2){
         jogadorVsJogador(jogo);
     }else if (jogo.numJogadores == 1){
@@ -457,7 +458,7 @@ void sorteioDaJogadaDaMaquina(char **matriz){
 void atualizarRanking(Jogador jogadorUm, Jogador jogadorDois){ 
     int attJogUm = 0, attJogDois = 0, numeroDeJogadores;
     Jogador todosJogadores[10]; //array para armazenar os dados dos jogadores do arquivo com o ranking
-    FILE *file = fopen("ranking.txt", "r");
+    FILE *file = fopen("velha.ini", "r");
     if (file == NULL){ //se não existir o arquivo com o ranking, cria o arquivo com os jogadores da rodada atual
             criarArquivoRanking(jogadorUm, jogadorDois);
             return;
@@ -492,7 +493,7 @@ void atualizarRanking(Jogador jogadorUm, Jogador jogadorDois){
         }
         fclose(file);
         ordenarTodosJogadores(todosJogadores, numeroDeJogadores); //coloca em ordem o array de acordo com os critérios
-        file = fopen("ranking.txt", "w"); //após ordenar todos, reescreve o arquivo com os jogadores em ordem
+        file = fopen("velha.ini", "w"); //após ordenar todos, reescreve o arquivo com os jogadores em ordem
         fprintf(file, "%d \n", numeroDeJogadores);
         for (int i = 0; i < numeroDeJogadores; i++){
             fprintf(file, "%s\n", todosJogadores[i].nome);
@@ -512,7 +513,7 @@ Jogador lerJogadorNoArquivo(FILE *file){
 
 //função que cria um arquivo para o ranking no caso da primeira partida do programa
 void criarArquivoRanking(Jogador jogadorUm, Jogador jogadorDois){ 
-    FILE *file = fopen("ranking.txt", "w");
+    FILE *file = fopen("velha.ini", "w");
     fprintf(file, "2\n");
     if (jogadorUm.vitorias > jogadorDois.vitorias){ //para inserir já em ordem
         inserirJogadorNoArquivo(file, jogadorUm);
@@ -574,12 +575,15 @@ void ordenarTodosJogadores(Jogador todosJogadores[10], int numeroDeJogadores){
 }
 
 //função para imprimir o ranking
-void exibirRanking(char arquivo[12]){ 
+void exibirRanking(char arquivo[10]){ 
     FILE *file = fopen(arquivo, "r");
     Jogador jogador[10];
+    system("clear");
     if (file == NULL){
-        printf("É necessário jogar pelo menos uma partida para exibir o ranking!");
-        system("clear");
+        getchar();
+        printf("É necessário jogar pelo menos uma partida para exibir o ranking!\n");
+        printf("Digite qualquer tecla para continuar!\n");
+        getchar();
         return;
     }
     int numeroDeJogadores, tam;
